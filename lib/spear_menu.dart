@@ -9,75 +9,62 @@ import 'triangle_painter.dart';
 
 abstract class MenuItemProvider {
   String get menuTitle;
-
-  bool get activeStatus;
-  actStatus(bool value);
-
+  Widget? icon;
   TextStyle get menuTextStyle;
 }
 
 class MenuItem extends MenuItemProvider {
   String title; // Menu title
-  TextStyle textStyle;
-  bool isActive;
+  TextStyle? textStyle;
+  Widget? icon;
 
-  MenuItem({this.title, this.textStyle, this.isActive});
+  MenuItem({required this.title, required this.textStyle, this.icon});
 
   @override
   String get menuTitle => title;
 
   @override
-  bool get activeStatus => isActive ?? false;
-
-  @override
 //  TextStyle get menuTextStyle => textStyle ?? TextStyle(color: Color(0xffc5c5c5), fontSize: 14.0);
-  TextStyle get menuTextStyle => textStyle ?? TextStyle(color: Colors.black87, fontSize: 14.0);
-
-  @override
-  actStatus(bool value) {
-    // TODO: implement actStatus
-    isActive = value;
-  }
-
+  TextStyle get menuTextStyle =>
+      textStyle ?? TextStyle(color: Colors.black87, fontSize: 14.0);
 }
 
 typedef MenuClickCallback = Function(MenuItemProvider item);
 typedef SpearMenuStateChanged = Function(bool isShow);
 
 class SpearMenu {
-//  static var itemWidth = 152.0;
-  static var itemWidth = MediaQuery.of(context).size.width * 0.50;
+  static var itemWidth = 152.0;
   static var itemHeight = 60.0;
   static var arrowHeight = 10.0;
-  OverlayEntry _entry;
+  late OverlayEntry _entry;
   List<MenuItemProvider> items;
 
   /// row count
-  int _row;
+  late int _row;
 
   /// The left top point of this menu.
-  Offset _offset;
+  late Offset _offset;
 
   /// Menu will show at above or under this rect
-  Rect _showRect;
+  late Rect _showRect;
 
   /// if false menu is show above of the widget, otherwise menu is show under the widget
   bool _isDown = true;
 
   /// callback
-  VoidCallback dismissCallback;
-  MenuClickCallback onClickMenu;
-  SpearMenuStateChanged stateChanged;
+  VoidCallback? dismissCallback;
+  MenuClickCallback? onClickMenu;
+  SpearMenuStateChanged? stateChanged;
 
-  Size _screenSize; // Screen size
+  late Size _screenSize; // Screen size
 
   /// Cannot be null
-  static BuildContext context;
+  static BuildContext? context;
 
   /// style
-  Color _backgroundColor;
-  Color _highlightColor;
-  Color _lineColor;
+  Color? _backgroundColor;
+  Color? _highlightColor;
+  Color? _lineColor;
 
   /// It's showing or not.
   bool _isShow = false;
@@ -85,14 +72,14 @@ class SpearMenu {
   bool get isShow => _isShow;
 
   SpearMenu(
-      {MenuClickCallback onClickMenu,
-        BuildContext context,
-        VoidCallback onDismiss,
-        Color backgroundColor,
-        Color highlightColor,
-        Color lineColor,
-        SpearMenuStateChanged stateChanged,
-        List<MenuItemProvider> items}) {
+      {this.onClickMenu,
+      BuildContext? context,
+      VoidCallback? onDismiss,
+      Color? backgroundColor,
+      Color? highlightColor,
+      Color? lineColor,
+      this.stateChanged,
+      this.items = const []}) {
     this.onClickMenu = onClickMenu;
     this.dismissCallback = onDismiss;
     this.stateChanged = stateChanged;
@@ -105,39 +92,40 @@ class SpearMenu {
     }
   }
 
-  void show({Rect rect, GlobalKey widgetKey, List<MenuItemProvider> items}) {
+  void show({Rect? rect, GlobalKey? widgetKey, List<MenuItemProvider>? items}) {
     if (rect == null && widgetKey == null) {
       print("'rect' and 'key' can't be both null");
       return;
     }
 
     this.items = items ?? this.items;
-    this._showRect = rect ?? SpearMenu.getWidgetGlobalRect(widgetKey);
+    this._showRect = rect ?? SpearMenu.getWidgetGlobalRect(widgetKey!);
     this._screenSize = window.physicalSize / window.devicePixelRatio;
     this.dismissCallback = dismissCallback;
 
-    _calculatePosition(SpearMenu.context);
+    _calculatePosition(SpearMenu.context!);
 
     _entry = OverlayEntry(builder: (context) {
       return buildSpearMenuLayout(_offset);
     });
 
-    Overlay.of(SpearMenu.context).insert(_entry);
+    Overlay.of(SpearMenu.context!)?.insert(_entry);
     _isShow = true;
-    if (this.stateChanged != null) {
-      this.stateChanged(true);
+    if (stateChanged != null) {
+      stateChanged!(true);
     }
   }
 
   static Rect getWidgetGlobalRect(GlobalKey key) {
-    RenderBox renderBox = key.currentContext.findRenderObject();
+    final renderBox = key.currentContext!.findRenderObject() as RenderBox;
     var offset = renderBox.localToGlobal(Offset.zero);
-    return Rect.fromLTWH(offset.dx, offset.dy, renderBox.size.width, renderBox.size.height);
+    return Rect.fromLTWH(
+        offset.dx, offset.dy, renderBox.size.width, renderBox.size.height);
   }
 
   void _calculatePosition(BuildContext context) {
     _row = items.length;
-    _offset = _calculateOffset(SpearMenu.context);
+    _offset = _calculateOffset(SpearMenu.context!);
   }
 
   Offset _calculateOffset(BuildContext context) {
@@ -188,16 +176,20 @@ class SpearMenu {
         },
         child: Container(
           decoration: new BoxDecoration(
-              border: new Border.all(width: 2.0, color: Colors.transparent), color: Colors.black.withOpacity(0.5)),
+              border: new Border.all(width: 2.0, color: Colors.transparent),
+              color: Colors.black.withOpacity(0.5)),
           child: Stack(
             children: <Widget>[
               // triangle arrow
               Positioned(
                 left: _showRect.left + _showRect.width / 2.0 - 7.5,
-                top: _isDown ? offset.dy + menuHeight() : offset.dy - arrowHeight,
+                top: _isDown
+                    ? offset.dy + menuHeight()
+                    : offset.dy - arrowHeight,
                 child: CustomPaint(
                   size: Size(15.0, arrowHeight),
-                  painter: TrianglePainter(isDown: _isDown, color: _backgroundColor),
+                  painter: TrianglePainter(
+                      isDown: _isDown, color: _backgroundColor ?? Colors.black),
                 ),
               ),
               // menu content
@@ -214,8 +206,9 @@ class SpearMenu {
                           child: Container(
                             width: menuWidth(),
                             height: menuHeight(),
-                            decoration:
-                            BoxDecoration(color: _backgroundColor, borderRadius: BorderRadius.circular(10.0)),
+                            decoration: BoxDecoration(
+                                color: _backgroundColor,
+                                borderRadius: BorderRadius.circular(10.0)),
                             child: Column(
                               children: _createRows(),
                             ),
@@ -235,9 +228,12 @@ class SpearMenu {
   List<Widget> _createRows() {
     List<Widget> rows = [];
     for (int i = 0; i < _row; i++) {
-      Color color = (i < _row - 1 && _row != 1) ? _lineColor : Colors.transparent;
+      Color color = (i < _row - 1 && _row != 1)
+          ? _lineColor ?? Colors.black
+          : Colors.transparent;
       Widget rowWidget = Container(
-        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: color, width: 0.5))),
+        decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: color, width: 0.5))),
         height: itemHeight,
         child: Row(
           children: _createRowItems(i),
@@ -252,7 +248,8 @@ class SpearMenu {
 
   //Create a line of item,  row Count from 0
   List<Widget> _createRowItems(int row) {
-    List<MenuItemProvider> subItems = items.sublist(row, min(row + 1, items.length));
+    List<MenuItemProvider> subItems =
+        items.sublist(row, min(row + 1, items.length));
     List<Widget> itemWidgets = [];
     for (var item in subItems) {
       itemWidgets.add(_createMenuItem(item));
@@ -272,7 +269,7 @@ class SpearMenu {
 
   void itemClicked(MenuItemProvider item) {
     if (onClickMenu != null) {
-      onClickMenu(item);
+      onClickMenu!(item);
     }
 
     dismiss();
@@ -287,11 +284,11 @@ class SpearMenu {
     _entry.remove();
     _isShow = false;
     if (dismissCallback != null) {
-      dismissCallback();
+      dismissCallback!();
     }
 
     if (this.stateChanged != null) {
-      this.stateChanged(false);
+      this.stateChanged!(false);
     }
   }
 }
@@ -300,12 +297,16 @@ class _MenuItemWidget extends StatefulWidget {
   final MenuItemProvider item;
 
 //  final Color lineColor;
-  final Color backgroundColor;
-  final Color highlightColor;
+  final Color? backgroundColor;
+  final Color? highlightColor;
 
-  final Function(MenuItemProvider item) clickCallback;
+  final Function(MenuItemProvider item)? clickCallback;
 
-  _MenuItemWidget({this.item, this.clickCallback, this.backgroundColor, this.highlightColor});
+  _MenuItemWidget(
+      {required this.item,
+      this.clickCallback,
+      this.backgroundColor,
+      this.highlightColor});
 
   @override
   _MenuItemWidgetState createState() => _MenuItemWidgetState();
@@ -317,8 +318,8 @@ class _MenuItemWidgetState extends State<_MenuItemWidget> {
 
   @override
   void initState() {
-    color = widget.backgroundColor;
-    highlightColor = widget.highlightColor;
+    if (widget.backgroundColor != null) color = widget.backgroundColor!;
+    if (widget.highlightColor != null) highlightColor = widget.highlightColor!;
     super.initState();
   }
 
@@ -330,16 +331,16 @@ class _MenuItemWidgetState extends State<_MenuItemWidget> {
         setState(() {});
       },
       onTapUp: (details) {
-        color = widget.backgroundColor;
+        color = widget.backgroundColor ?? Colors.white;
         setState(() {});
       },
       onLongPressEnd: (details) {
-        color = widget.backgroundColor;
+        color = widget.backgroundColor ?? Colors.white;
         setState(() {});
       },
       onTap: () {
         if (widget.clickCallback != null) {
-          widget.clickCallback(widget.item);
+          widget.clickCallback!(widget.item);
         }
       },
       child: Container(
@@ -353,30 +354,24 @@ class _MenuItemWidgetState extends State<_MenuItemWidget> {
   }
 
   Widget _createContent() {
-    bool activeMode = widget.item.activeStatus;
+    final icon = widget.item.icon;
     return Container(
       padding: EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
+          if (icon != null) icon,
           Expanded(
             flex: 1,
             child: Material(
               color: Colors.transparent,
-              child: Text(widget.item.menuTitle, style: widget.item.menuTextStyle.copyWith(fontWeight: activeMode ? FontWeight.bold : FontWeight.normal)),
+              child:
+                  Text(widget.item.menuTitle, style: widget.item.menuTextStyle),
             ),
           ),
-          Visibility(
-            visible: activeMode,
-            child: Icon(
-              Icons.check,
-              color: Colors.lightGreen,
-            ),
-          )
         ],
       ),
     );
   }
 }
-
